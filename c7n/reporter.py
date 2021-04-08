@@ -6,9 +6,8 @@ import uuid
 from humbug.consent import HumbugConsent
 from humbug.report import Reporter
 
-# TODO: replace with correct tokens
-HUMBUG_TOKEN = "82e2a9bf-36f4-4dbf-a0b3-48c2402f5530"
-HUMBUG_KB_ID = "cc7624d7-84f2-4bf3-87f9-a4f603216d1d"
+HUMBUG_TOKEN = "7c8802bd-e5e1-4351-be07-43adeb48874a"
+HUMBUG_KB_ID = "dddd1df7-d05e-45a0-97f6-83f3104c9cef"
 
 c7n_REPORT_CONFIG_FILE_NAME = "reporting_config.json"
 
