@@ -6,11 +6,13 @@
 
 import argcomplete
 import argparse
+from distutils.util import strtobool
 import importlib
 import logging
 import os
 import pdb
 import sys
+import textwrap
 import traceback
 from datetime import datetime
 from dateutil.parser import parse as date_parse
@@ -20,8 +22,11 @@ try:
 except ImportError:
     def setproctitle(t):
         return None
+from humbug.report import Report
 
 from c7n.config import Config
+from c7n.reporter import c7n_reporter, save_reporting_config
+from c7n.version import version
 
 DEFAULT_REGION = 'us-east-1'
 
@@ -191,6 +196,11 @@ def _key_val_pair(value):
 def setup_parser():
     c7n_desc = "Cloud Custodian - Cloud fleet management"
     parser = argparse.ArgumentParser(description=c7n_desc)
+    parser.add_argument(
+        "--reporting",
+        choices=["True", "False"],
+        help="enable or disable sending crash reports to Cloud Custodian",
+    )
 
     # Setting `dest` means we capture which subparser was used.
     subs = parser.add_subparsers(
@@ -321,11 +331,47 @@ def _setup_logger(options):
     logging.getLogger('s3transfer').setLevel(external_log_level)
     logging.getLogger('urllib3').setLevel(logging.ERROR)
 
+    old_factory = logging.getLogRecordFactory()
+
+    def record_factory(*args, **kwargs):
+        record = old_factory(*args, **kwargs)
+        c7n_reporter.logging_report(record=record, publish=True, tags=[version]
+        )
+        return record
+
+    logging.setLogRecordFactory(record_factory)
+
 
 def main():
     parser = setup_parser()
     argcomplete.autocomplete(parser)
     options = parser.parse_args()
+
+    if options.reporting:
+        reporting_notice = textwrap.dedent(
+            """
+            Privacy policy:
+            We collect basic system information and crash reports so that we can keep
+            improving your experience using Cloud Custodian to work with your data.
+            You can find out more by reading our privacy policy:
+                https://stacklet.io
+            If you would like to opt out of reporting crashes and system information,
+            run the following command:
+                $ custodian --reporting False
+            """
+        )
+
+        reporting_choice = bool(strtobool(options.reporting))
+        report = Report(
+            title="Consent change",
+            tags=c7n_reporter.system_tags(),
+            content="Consent? `{}`".format(reporting_choice),
+        )
+        c7n_reporter.publish(report)
+        save_reporting_config(reporting_choice)
+
+        sys.stdout.write("%s\n" % reporting_notice) 
+
     if options.subparser is None:
         parser.print_help(file=sys.stderr)
         return sys.exit(2)
