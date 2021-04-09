@@ -331,16 +331,7 @@ def _setup_logger(options):
     logging.getLogger('s3transfer').setLevel(external_log_level)
     logging.getLogger('urllib3').setLevel(logging.ERROR)
 
-    old_factory = logging.getLogRecordFactory()
-
-    def record_factory(*args, **kwargs):
-        record = old_factory(*args, **kwargs)
-        c7n_reporter.logging_report(record=record, publish=True, tags=[version]
-        )
-        return record
-
-    logging.setLogRecordFactory(record_factory)
-
+    c7n_reporter.setup_loggerhook(levels=[logging.ERROR],tags=[version], publish=True)
 
 def main():
     parser = setup_parser()
